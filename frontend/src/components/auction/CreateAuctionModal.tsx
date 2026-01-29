@@ -27,17 +27,18 @@ interface CreateAuctionModalProps {
 }
 
 const DURATION_OPTIONS = [
-  { value: 0.167, label: '10 seconds (testing)' },
-  { value: 5, label: '5 minutes' },
-  { value: 15, label: '15 minutes' },
-  { value: 30, label: '30 minutes' },
-  { value: 60, label: '1 hour' },
-  { value: 180, label: '3 hours' },
-  { value: 360, label: '6 hours' },
-  { value: 720, label: '12 hours' },
-  { value: 1440, label: '24 hours' },
-  { value: 4320, label: '3 days' },
-  { value: 10080, label: '7 days' }
+  { value: 10, label: '10 seconds (testing)' },
+  { value: 30, label: '30 seconds (testing)' },
+  { value: 300, label: '5 minutes' },
+  { value: 900, label: '15 minutes' },
+  { value: 1800, label: '30 minutes' },
+  { value: 3600, label: '1 hour' },
+  { value: 10800, label: '3 hours' },
+  { value: 21600, label: '6 hours' },
+  { value: 43200, label: '12 hours' },
+  { value: 86400, label: '24 hours' },
+  { value: 259200, label: '3 days' },
+  { value: 604800, label: '7 days' }
 ];
 
 const INITIAL_FORM_STATE = {
@@ -45,7 +46,7 @@ const INITIAL_FORM_STATE = {
   description: '',
   startingPrice: '',
   minimumBidIncrement: '1.00',
-  durationInMinutes: 60,
+  durationInSeconds: 3600,
   imageUrl: ''
 };
 
@@ -63,7 +64,7 @@ export default function CreateAuctionModal({ open, onClose, onSuccess }: CreateA
   };
 
   const handleDurationChange = (event: any) => {
-    setFormData((prev) => ({ ...prev, durationInMinutes: event.target.value }));
+    setFormData((prev) => ({ ...prev, durationInSeconds: event.target.value }));
   };
 
   const validateForm = (): boolean => {
@@ -111,7 +112,7 @@ export default function CreateAuctionModal({ open, onClose, onSuccess }: CreateA
         description: formData.description.trim(),
         startingPrice: parseFloat(formData.startingPrice),
         minimumBidIncrement: parseFloat(formData.minimumBidIncrement),
-        durationInMinutes: formData.durationInMinutes,
+        durationInSeconds: formData.durationInSeconds,
         imageUrl: formData.imageUrl.trim() || null
       });
 
@@ -203,7 +204,7 @@ export default function CreateAuctionModal({ open, onClose, onSuccess }: CreateA
 
           <FormControl fullWidth>
             <InputLabel>Auction Duration</InputLabel>
-            <Select value={formData.durationInMinutes} label="Auction Duration" onChange={handleDurationChange}>
+            <Select value={formData.durationInSeconds} label="Auction Duration" onChange={handleDurationChange}>
               {DURATION_OPTIONS.map((option) => (
                 <MenuItem key={option.value} value={option.value}>
                   {option.label}

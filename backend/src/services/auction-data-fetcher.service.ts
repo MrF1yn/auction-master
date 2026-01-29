@@ -51,7 +51,7 @@ export interface CreateAuctionItemInput {
   itemDescription: string;
   startingPriceInDollars: number;
   minimumBidIncrementInDollars: number;
-  auctionDurationInMinutes: number;
+  auctionDurationInSeconds: number;
   itemImageUrl?: string | null;
   creatorUserId: string;
 }
@@ -119,17 +119,17 @@ export async function createAuctionItem(
       };
     }
 
-    if (input.auctionDurationInMinutes < 0.1) {
+    if (input.auctionDurationInSeconds < 5) {
       return {
         wasCreationSuccessful: false,
         auctionItem: null,
-        errorMessage: "Auction duration must be at least 6 seconds",
+        errorMessage: "Auction duration must be at least 5 seconds",
       };
     }
 
     const now = new Date();
     const auctionEndTime = new Date(
-      now.getTime() + input.auctionDurationInMinutes * 60 * 1000,
+      now.getTime() + input.auctionDurationInSeconds * 1000,
     );
 
     // Use provided image or get a random sample image
