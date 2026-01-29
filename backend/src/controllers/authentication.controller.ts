@@ -1,177 +1,194 @@
-// ==============================|| AUTHENTICATION CONTROLLER ||============================== //
-// Handles HTTP requests for authentication endpoints
+// Authentication HTTP request handlers
 
-import { Request, Response } from 'express';
+import { Request, Response } from "express";
 import {
   registerNewUserAccount,
   loginUserWithCredentials,
   logoutUserAndBlacklistToken,
-  fetchUserProfileById
-} from '../services/authentication.service';
-import { AuthenticatedRequest } from '../middleware/authentication.middleware';
-import { HTTP_STATUS_OK, HTTP_STATUS_CREATED, HTTP_STATUS_BAD_REQUEST, HTTP_STATUS_UNAUTHORIZED } from '../constants/error-codes.constants';
-import { logInfoMessage, logErrorMessage } from '../utils/logger.util';
+  fetchUserProfileById,
+} from "../services/authentication.service";
+import { AuthenticatedRequest } from "../middleware/authentication.middleware";
+import {
+  HTTP_STATUS_OK,
+  HTTP_STATUS_CREATED,
+  HTTP_STATUS_BAD_REQUEST,
+  HTTP_STATUS_UNAUTHORIZED,
+} from "../constants/error-codes.constants";
+import { logInfoMessage, logErrorMessage } from "../utils/logger.util";
 
-// ==============================|| REGISTER USER ||============================== //
-
-export async function handleUserRegistrationRequest(request: Request, response: Response): Promise<void> {
+export async function handleUserRegistrationRequest(
+  request: Request,
+  response: Response,
+): Promise<void> {
   try {
     const { email, username, fullName, password } = request.body;
 
-    // Validate required fields
     if (!email || !username || !fullName || !password) {
       response.status(HTTP_STATUS_BAD_REQUEST).json({
         success: false,
-        errorCode: 'VALIDATION_ERROR',
-        errorMessage: 'Email, username, full name, and password are required'
+        errorCode: "VALIDATION_ERROR",
+        errorMessage: "Email, username, full name, and password are required",
       });
       return;
     }
 
-    const registrationResult = await registerNewUserAccount(email, username, fullName, password);
+    const result = await registerNewUserAccount(
+      email,
+      username,
+      fullName,
+      password,
+    );
 
-    if (!registrationResult.wasRegistrationSuccessful) {
+    if (!result.wasRegistrationSuccessful) {
       response.status(HTTP_STATUS_BAD_REQUEST).json({
         success: false,
-        errorCode: registrationResult.errorCode,
-        errorMessage: registrationResult.errorMessage
+        errorCode: result.errorCode,
+        errorMessage: result.errorMessage,
       });
       return;
     }
 
-    logInfoMessage('User registered successfully', { userId: registrationResult.userProfile?.userId });
+    logInfoMessage("User registered successfully", {
+      userId: result.userProfile?.userId,
+    });
 
     response.status(HTTP_STATUS_CREATED).json({
       success: true,
       data: {
-        serviceToken: registrationResult.jwtToken,
+        serviceToken: result.jwtToken,
         user: {
-          id: registrationResult.userProfile?.userId,
-          email: registrationResult.userProfile?.emailAddress,
-          name: registrationResult.userProfile?.fullName,
-          avatar: registrationResult.userProfile?.avatarUrl,
-          role: 'user'
-        }
-      }
+          id: result.userProfile?.userId,
+          email: result.userProfile?.emailAddress,
+          name: result.userProfile?.fullName,
+          avatar: result.userProfile?.avatarUrl,
+          role: "user",
+        },
+      },
     });
   } catch (error) {
-    logErrorMessage('Error in user registration controller', error);
+    logErrorMessage("Error in user registration controller", error);
     response.status(HTTP_STATUS_BAD_REQUEST).json({
       success: false,
-      errorCode: 'SERVER_ERROR',
-      errorMessage: 'An unexpected error occurred during registration'
+      errorCode: "SERVER_ERROR",
+      errorMessage: "An unexpected error occurred during registration",
     });
   }
 }
 
-// ==============================|| LOGIN USER ||============================== //
-
-export async function handleUserLoginRequest(request: Request, response: Response): Promise<void> {
+export async function handleUserLoginRequest(
+  request: Request,
+  response: Response,
+): Promise<void> {
   try {
     const { email, password } = request.body;
 
-    // Validate required fields
     if (!email || !password) {
       response.status(HTTP_STATUS_BAD_REQUEST).json({
         success: false,
-        errorCode: 'VALIDATION_ERROR',
-        errorMessage: 'Email/username and password are required'
+        errorCode: "VALIDATION_ERROR",
+        errorMessage: "Email/username and password are required",
       });
       return;
     }
 
-    const loginResult = await loginUserWithCredentials(email, password);
+    const result = await loginUserWithCredentials(email, password);
 
-    if (!loginResult.wasLoginSuccessful) {
+    if (!result.wasLoginSuccessful) {
       response.status(HTTP_STATUS_UNAUTHORIZED).json({
         success: false,
-        errorCode: loginResult.errorCode,
-        errorMessage: loginResult.errorMessage
+        errorCode: result.errorCode,
+        errorMessage: result.errorMessage,
       });
       return;
     }
 
-    logInfoMessage('User logged in successfully', { userId: loginResult.userProfile?.userId });
+    logInfoMessage("User logged in successfully", {
+      userId: result.userProfile?.userId,
+    });
 
     response.status(HTTP_STATUS_OK).json({
       success: true,
       data: {
-        serviceToken: loginResult.jwtToken,
+        serviceToken: result.jwtToken,
         user: {
-          id: loginResult.userProfile?.userId,
-          email: loginResult.userProfile?.emailAddress,
-          name: loginResult.userProfile?.fullName,
-          avatar: loginResult.userProfile?.avatarUrl,
-          role: 'user'
-        }
-      }
+          id: result.userProfile?.userId,
+          email: result.userProfile?.emailAddress,
+          name: result.userProfile?.fullName,
+          avatar: result.userProfile?.avatarUrl,
+          role: "user",
+        },
+      },
     });
   } catch (error) {
-    logErrorMessage('Error in user login controller', error);
+    logErrorMessage("Error in user login controller", error);
     response.status(HTTP_STATUS_BAD_REQUEST).json({
       success: false,
-      errorCode: 'SERVER_ERROR',
-      errorMessage: 'An unexpected error occurred during login'
+      errorCode: "SERVER_ERROR",
+      errorMessage: "An unexpected error occurred during login",
     });
   }
 }
 
-// ==============================|| LOGOUT USER ||============================== //
-
-export async function handleUserLogoutRequest(request: AuthenticatedRequest, response: Response): Promise<void> {
+export async function handleUserLogoutRequest(
+  request: AuthenticatedRequest,
+  response: Response,
+): Promise<void> {
   try {
-    const authenticatedUser = request.authenticatedUser;
-    const jwtToken = request.jwtToken;
+    const { authenticatedUser, jwtToken } = request;
 
     if (!authenticatedUser || !jwtToken) {
       response.status(HTTP_STATUS_UNAUTHORIZED).json({
         success: false,
-        errorCode: 'AUTH_ERROR',
-        errorMessage: 'Not authenticated'
+        errorCode: "AUTH_ERROR",
+        errorMessage: "Not authenticated",
       });
       return;
     }
 
-    const logoutResult = await logoutUserAndBlacklistToken(jwtToken, authenticatedUser.userId);
+    const result = await logoutUserAndBlacklistToken(
+      jwtToken,
+      authenticatedUser.userId,
+    );
 
-    if (!logoutResult.wasLogoutSuccessful) {
+    if (!result.wasLogoutSuccessful) {
       response.status(HTTP_STATUS_BAD_REQUEST).json({
         success: false,
-        errorCode: 'LOGOUT_ERROR',
-        errorMessage: logoutResult.errorMessage
+        errorCode: "LOGOUT_ERROR",
+        errorMessage: result.errorMessage,
       });
       return;
     }
 
-    logInfoMessage('User logged out successfully', { userId: authenticatedUser.userId });
+    logInfoMessage("User logged out successfully", {
+      userId: authenticatedUser.userId,
+    });
 
     response.status(HTTP_STATUS_OK).json({
       success: true,
-      data: {
-        message: 'Logged out successfully'
-      }
+      data: { message: "Logged out successfully" },
     });
   } catch (error) {
-    logErrorMessage('Error in user logout controller', error);
+    logErrorMessage("Error in user logout controller", error);
     response.status(HTTP_STATUS_BAD_REQUEST).json({
       success: false,
-      errorCode: 'SERVER_ERROR',
-      errorMessage: 'An unexpected error occurred during logout'
+      errorCode: "SERVER_ERROR",
+      errorMessage: "An unexpected error occurred during logout",
     });
   }
 }
 
-// ==============================|| GET CURRENT USER ||============================== //
-
-export async function handleGetCurrentUserRequest(request: AuthenticatedRequest, response: Response): Promise<void> {
+export async function handleGetCurrentUserRequest(
+  request: AuthenticatedRequest,
+  response: Response,
+): Promise<void> {
   try {
-    const authenticatedUser = request.authenticatedUser;
+    const { authenticatedUser } = request;
 
     if (!authenticatedUser) {
       response.status(HTTP_STATUS_UNAUTHORIZED).json({
         success: false,
-        errorCode: 'AUTH_ERROR',
-        errorMessage: 'Not authenticated'
+        errorCode: "AUTH_ERROR",
+        errorMessage: "Not authenticated",
       });
       return;
     }
@@ -181,8 +198,8 @@ export async function handleGetCurrentUserRequest(request: AuthenticatedRequest,
     if (!userProfile) {
       response.status(HTTP_STATUS_UNAUTHORIZED).json({
         success: false,
-        errorCode: 'USER_NOT_FOUND',
-        errorMessage: 'User not found'
+        errorCode: "USER_NOT_FOUND",
+        errorMessage: "User not found",
       });
       return;
     }
@@ -195,16 +212,16 @@ export async function handleGetCurrentUserRequest(request: AuthenticatedRequest,
           email: userProfile.emailAddress,
           name: userProfile.fullName,
           avatar: userProfile.avatarUrl,
-          role: 'user'
-        }
-      }
+          role: "user",
+        },
+      },
     });
   } catch (error) {
-    logErrorMessage('Error in get current user controller', error);
+    logErrorMessage("Error in get current user controller", error);
     response.status(HTTP_STATUS_BAD_REQUEST).json({
       success: false,
-      errorCode: 'SERVER_ERROR',
-      errorMessage: 'An unexpected error occurred'
+      errorCode: "SERVER_ERROR",
+      errorMessage: "An unexpected error occurred",
     });
   }
 }
