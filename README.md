@@ -94,47 +94,56 @@ Client                    Server
 ## Project Structure
 
 ```
-auction-master/
-├── src/                          # Frontend source
-│   ├── components/
-│   │   └── auction/              # Auction-specific components
-│   │       ├── AuctionCard.tsx
-│   │       ├── BidButton.tsx
-│   │       ├── CountdownTimer.tsx
-│   │       ├── BidStatusBadges.tsx
-│   │       └── CreateAuctionModal.tsx
-│   ├── hooks/
-│   │   ├── useSocketConnection.ts    # WebSocket management
-│   │   ├── useBidSubmission.ts       # Bid submission logic
-│   │   └── useServerSyncedCountdown.ts
-│   ├── store/
-│   │   └── auctionStore.ts       # Zustand state management
-│   ├── pages/
-│   │   ├── auction/              # Auction dashboard
-│   │   ├── my-bids/              # User's bid history
-│   │   └── won-items/            # User's won auctions
-│   └── contexts/
-│       └── JWTContext.tsx        # Authentication context
-│
-├── backend/                      # Backend source
+livebid/
+├── frontend/                     # Frontend React application
 │   ├── src/
-│   │   ├── config/               # Configuration files
-│   │   ├── constants/            # Constants and enums
-│   │   ├── controllers/          # Route controllers
-│   │   ├── middleware/           # Express middleware
-│   │   ├── routes/               # API routes
-│   │   ├── services/             # Business logic
-│   │   ├── sockets/              # Socket.io handlers
-│   │   ├── utils/                # Utility functions
-│   │   ├── lib/                  # External libraries
-│   │   └── server.ts             # Entry point
-│   └── prisma/
-│       ├── schema.prisma         # Database schema
-│       └── seed.ts               # Demo data seeder
+│   │   ├── components/
+│   │   │   └── auction/          # Auction-specific components
+│   │   │       ├── AuctionCard.tsx
+│   │   │       ├── BidButton.tsx
+│   │   │       ├── CountdownTimer.tsx
+│   │   │       ├── BidStatusBadges.tsx
+│   │   │       └── CreateAuctionModal.tsx
+│   │   ├── hooks/
+│   │   │   ├── useSocketConnection.ts
+│   │   │   ├── useBidSubmission.ts
+│   │   │   └── useServerSyncedCountdown.ts
+│   │   ├── store/
+│   │   │   └── auctionStore.ts
+│   │   ├── pages/
+│   │   │   ├── auction/
+│   │   │   ├── my-bids/
+│   │   │   └── won-items/
+│   │   └── contexts/
+│   │       └── JWTContext.tsx
+│   ├── package.json
+│   ├── vite.config.mts
+│   └── Dockerfile.dev
 │
-├── docker-compose.yml            # Infrastructure (DB + Redis)
+├── backend/                      # Backend Node.js application
+│   ├── src/
+│   │   ├── config/
+│   │   ├── constants/
+│   │   ├── controllers/
+│   │   ├── middleware/
+│   │   ├── routes/
+│   │   ├── services/
+│   │   ├── sockets/
+│   │   ├── utils/
+│   │   ├── lib/
+│   │   └── server.ts
+│   ├── prisma/
+│   │   ├── schema.prisma
+│   │   └── seed.ts
+│   ├── package.json
+│   ├── Dockerfile
+│   └── Dockerfile.dev
+│
+├── docker-compose.yml            # Infrastructure only (DB + Redis)
 ├── docker-compose.dev.yml        # Full dev stack
-└── docker-compose.prod.yml       # Production backend
+├── docker-compose.prod.yml       # Production backend
+├── .env.production.example
+└── README.md
 ```
 
 ## Getting Started
@@ -151,19 +160,18 @@ auction-master/
 
    ```bash
    git clone <repository-url>
-   cd auction-master
+   cd livebid
 
    # Frontend dependencies
-   yarn install
+   cd frontend && yarn install && cd ..
 
    # Backend dependencies
-   cd backend && npm install
+   cd backend && npm install && cd ..
    ```
 
 2. **Start infrastructure**
 
    ```bash
-   # From project root
    docker-compose up -d
    ```
 
@@ -189,7 +197,7 @@ auction-master/
 5. **Start the frontend** (new terminal)
 
    ```bash
-   # From project root
+   cd frontend
    yarn start
    ```
 
@@ -349,7 +357,7 @@ model Bid {
 
 ## Scripts
 
-### Frontend
+### Frontend (from `frontend/` directory)
 
 ```bash
 yarn start        # Start dev server
@@ -358,7 +366,7 @@ yarn lint         # Run ESLint
 yarn lint:fix     # Fix ESLint errors
 ```
 
-### Backend
+### Backend (from `backend/` directory)
 
 ```bash
 npm run dev              # Start with hot reload
