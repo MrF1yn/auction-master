@@ -8,8 +8,8 @@ import useAuth from './useAuth';
 // Socket events
 const EVENTS = {
   BID_UPDATE: 'BID_UPDATE_BROADCAST',
-  AUCTION_ENDED: 'AUCTION_ENDED_NOTIFICATION',
-  AUCTIONS_ENDED_BULK: 'auctions:ended',
+  AUCTION_ENDED: 'auction:ended',
+  AUCTION_CREATED: 'auction:created',
   TIME_SYNC_REQUEST: 'TIME_SYNC_REQUEST',
   TIME_SYNC_RESPONSE: 'TIME_SYNC_RESPONSE',
   JOIN_ROOM: 'JOIN_AUCTION_ROOM',
@@ -25,17 +25,20 @@ interface TimeSyncSample {
   roundTripTimeInMs: number;
 }
 
-// Global callbacks for auction refresh events
-const auctionRefreshCallbacks = new Set<() => void>();
-
 export function useSocketConnection() {
   const socketRef = useRef<Socket | null>(null);
   const timeSyncSamplesRef = useRef<TimeSyncSample[]>([]);
   const timeSyncIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const { isLoggedIn } = useAuth();
-  const { updateSocketConnectionState, updateTimeSyncState, updateAuctionItemWithBid, markAuctionAsEnded, markAuctionAsRecentlyUpdated } =
-    useAuctionStore();
+  const {
+    updateSocketConnectionState,
+    updateTimeSyncState,
+    updateAuctionItemWithBid,
+    markAuctionAsEnded,
+    markAuctionAsRecentlyUpdated,
+    addNewAuctionItem
+  } = useAuctionStore();
 
   // Time sync using NTP-style algorithm
   const performTimeSyncRequest = useCallback(() => {
@@ -93,9 +96,31 @@ export function useSocketConnection() {
     [markAuctionAsEnded]
   );
 
-  const handleBulkAuctionsEnded = useCallback(() => {
-    auctionRefreshCallbacks.forEach((callback) => callback());
-  }, []);
+  const handleNewAuctionCreated = useCallback(
+    (data: { auctionItem: any }) => {
+      if (data.auctionItem) {
+        // Transform backend response to frontend format
+        const item = {
+          id: data.auctionItem.id,
+          itemTitle: data.auctionItem.itemTitle,
+          itemDescription: data.auctionItem.itemDescription,
+          startingPriceInDollars: data.auctionItem.startingPriceInDollars,
+          currentHighestBidInDollars: data.auctionItem.currentHighestBidInDollars,
+          minimumBidIncrementInDollars: data.auctionItem.minimumBidIncrementInDollars,
+          auctionStartTimeTimestamp: data.auctionItem.auctionStartTimeTimestamp,
+          auctionEndTimeTimestamp: data.auctionItem.auctionEndTimeTimestamp,
+          itemImageUrl: data.auctionItem.itemImageUrl,
+          currentStatus: data.auctionItem.currentStatus,
+          creatorUser: data.auctionItem.creatorUser,
+          winnerUser: data.auctionItem.winnerUser || null,
+          totalBidCount: data.auctionItem.totalBidCount || 0,
+          highestBidder: data.auctionItem.highestBidder || null
+        };
+        addNewAuctionItem(item);
+      }
+    },
+    [addNewAuctionItem]
+  );
 
   const connectSocket = useCallback(() => {
     const token = localStorage.getItem('serviceToken');
@@ -146,7 +171,7 @@ export function useSocketConnection() {
     socket.on(EVENTS.TIME_SYNC_RESPONSE, handleTimeSyncResponse);
     socket.on(EVENTS.BID_UPDATE, handleBidUpdate);
     socket.on(EVENTS.AUCTION_ENDED, handleAuctionEnded);
-    socket.on(EVENTS.AUCTIONS_ENDED_BULK, handleBulkAuctionsEnded);
+    socket.on(EVENTS.AUCTION_CREATED, handleNewAuctionCreated);
   }, [
     isLoggedIn,
     updateSocketConnectionState,
@@ -154,7 +179,7 @@ export function useSocketConnection() {
     handleTimeSyncResponse,
     handleBidUpdate,
     handleAuctionEnded,
-    handleBulkAuctionsEnded
+    handleNewAuctionCreated
   ]);
 
   const disconnectSocket = useCallback(() => {
@@ -182,11 +207,6 @@ export function useSocketConnection() {
 
   const getSocketInstance = useCallback(() => socketRef.current, []);
 
-  const registerAuctionRefreshCallback = useCallback((callback: () => void) => {
-    auctionRefreshCallbacks.add(callback);
-    return () => auctionRefreshCallbacks.delete(callback);
-  }, []);
-
   useEffect(() => {
     if (isLoggedIn) {
       connectSocket();
@@ -201,8 +221,7 @@ export function useSocketConnection() {
     disconnectSocket,
     joinAuctionRoom,
     leaveAuctionRoom,
-    getSocketInstance,
-    registerAuctionRefreshCallback
+    getSocketInstance
   };
 }
 

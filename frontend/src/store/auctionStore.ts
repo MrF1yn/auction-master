@@ -53,6 +53,7 @@ interface AuctionStoreState {
 
   // Actions
   setAllAuctionItems: (items: AuctionItemState[]) => void;
+  addNewAuctionItem: (item: AuctionItemState) => void;
   setIsLoadingAuctionItems: (loading: boolean) => void;
   setAuctionItemsLoadError: (error: string | null) => void;
   updateAuctionItemWithBid: (bidUpdate: BidUpdatePayload) => void;
@@ -80,6 +81,19 @@ export const useAuctionStore = create<AuctionStoreState>()(
       recentlyUpdatedAuctionIds: new Set(),
 
       setAllAuctionItems: (items) => set({ allAuctionItems: items }, false, 'setAllAuctionItems'),
+
+      addNewAuctionItem: (item) =>
+        set(
+          (state) => {
+            // Only add if not already exists
+            if (state.allAuctionItems.some((existing) => existing.id === item.id)) {
+              return state;
+            }
+            return { allAuctionItems: [item, ...state.allAuctionItems] };
+          },
+          false,
+          'addNewAuctionItem'
+        ),
 
       setIsLoadingAuctionItems: (loading) => set({ isLoadingAuctionItems: loading }, false, 'setIsLoadingAuctionItems'),
 

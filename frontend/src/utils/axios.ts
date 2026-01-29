@@ -20,7 +20,11 @@ axiosServices.interceptors.request.use(
 axiosServices.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response.status === 401 && !window.location.href.includes('/login')) {
+    const isAuthPage = window.location.pathname.includes('/login') || window.location.pathname.includes('/register');
+    const isAuthEndpoint = error.config?.url?.includes('/api/account/login') || error.config?.url?.includes('/api/account/register');
+
+    // Only redirect to maintenance for 401 on protected routes (not auth pages/endpoints)
+    if (error.response?.status === 401 && !isAuthPage && !isAuthEndpoint) {
       window.location.pathname = '/maintenance/500';
     }
     return Promise.reject((error.response && error.response.data) || 'Wrong Services');

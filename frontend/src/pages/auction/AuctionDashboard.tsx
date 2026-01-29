@@ -30,7 +30,7 @@ export default function AuctionDashboard() {
     setAuctionItemsLoadError
   } = useAuctionStore();
 
-  const { joinAuctionRoom, registerAuctionRefreshCallback } = useSocketConnection();
+  const { joinAuctionRoom } = useSocketConnection();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   const fetchAuctionItems = useCallback(async () => {
@@ -60,13 +60,6 @@ export default function AuctionDashboard() {
       allAuctionItems.forEach((item) => joinAuctionRoom(item.id));
     }
   }, [allAuctionItems, socketConnectionState.isConnected, joinAuctionRoom]);
-
-  useEffect(() => {
-    const unregister = registerAuctionRefreshCallback(fetchAuctionItems);
-    return () => {
-      unregister();
-    };
-  }, [registerAuctionRefreshCallback, fetchAuctionItems]);
 
   return (
     <>

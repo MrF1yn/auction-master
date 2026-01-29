@@ -7,6 +7,7 @@ import {
   fetchBidHistoryForAuction,
   createAuctionItem,
 } from "../services/auction-data-fetcher.service";
+import { broadcastNewAuction } from "../sockets/bid-events.socket";
 import {
   requireJwtAuthentication,
   AuthenticatedRequest,
@@ -79,6 +80,9 @@ auctionItemsRouter.post(
         });
         return;
       }
+
+      // Broadcast to all connected clients
+      broadcastNewAuction(result.auctionItem);
 
       response.status(HTTP_STATUS_CREATED).json({
         success: true,

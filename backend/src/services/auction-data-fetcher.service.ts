@@ -598,31 +598,53 @@ export async function fetchUserWonAuctions(
   }
 }
 
-// ==============================|| END EXPIRED AUCTIONS ||============================== //
+// Types for ended auction info
+export interface EndedAuctionInfo {
+  auctionItemId: string;
+  winnerUserId: string | null;
+  winnerUsername: string | null;
+  finalBidAmountInDollars: number;
+}
 
-export async function markExpiredAuctionsAsEnded(): Promise<number> {
+export interface MarkExpiredResult {
+  count: number;
+  endedAuctions: EndedAuctionInfo[];
+}
+
+export async function markExpiredAuctionsAsEnded(): Promise<MarkExpiredResult> {
   try {
-    const result = await prismaClient.auctionItem.updateMany({
+    // Find auctions that need to be ended
+    const auctionsToEnd = await prismaClient.auctionItem.findMany({
       where: {
         currentStatus: "ACTIVE",
         auctionEndTimeTimestamp: {
           lte: new Date(),
         },
       },
+      select: {
+        id: true,
+        currentHighestBidInDollars: true,
+      },
+    });
+
+    if (auctionsToEnd.length === 0) {
+      return { count: 0, endedAuctions: [] };
+    }
+
+    // Update them to ENDED
+    await prismaClient.auctionItem.updateMany({
+      where: {
+        id: { in: auctionsToEnd.map((a) => a.id) },
+      },
       data: {
         currentStatus: "ENDED",
       },
     });
 
-    // For each ended auction, set the winner
-    const endedAuctions = await prismaClient.auctionItem.findMany({
-      where: {
-        currentStatus: "ENDED",
-        winnerUserId: null,
-      },
-    });
+    const endedAuctions: EndedAuctionInfo[] = [];
 
-    for (const auction of endedAuctions) {
+    // For each ended auction, set the winner and collect info
+    for (const auction of auctionsToEnd) {
       const highestBid = await prismaClient.bid.findFirst({
         where: {
           auctionItemId: auction.id,
@@ -631,6 +653,11 @@ export async function markExpiredAuctionsAsEnded(): Promise<number> {
         orderBy: {
           bidAmountInDollars: "desc",
         },
+        include: {
+          bidderUser: {
+            select: { id: true, username: true },
+          },
+        },
       });
 
       if (highestBid) {
@@ -638,12 +665,27 @@ export async function markExpiredAuctionsAsEnded(): Promise<number> {
           where: { id: auction.id },
           data: { winnerUserId: highestBid.bidderUserId },
         });
+
+        endedAuctions.push({
+          auctionItemId: auction.id,
+          winnerUserId: highestBid.bidderUserId,
+          winnerUsername: highestBid.bidderUser.username,
+          finalBidAmountInDollars: Number(highestBid.bidAmountInDollars),
+        });
+      } else {
+        // No bids - no winner
+        endedAuctions.push({
+          auctionItemId: auction.id,
+          winnerUserId: null,
+          winnerUsername: null,
+          finalBidAmountInDollars: Number(auction.currentHighestBidInDollars),
+        });
       }
     }
 
-    return result.count;
+    return { count: auctionsToEnd.length, endedAuctions };
   } catch (error) {
     logErrorMessage("Error marking expired auctions as ended", error);
-    return 0;
+    return { count: 0, endedAuctions: [] };
   }
 }
