@@ -4,7 +4,7 @@ import { jwtDecode } from 'jwt-decode';
 import { LOGIN, LOGOUT } from 'contexts/auth-reducer/actions';
 import authReducer from 'contexts/auth-reducer/auth';
 
-import Loader from 'components/Loader';
+import BackendWakeupLoader from 'components/BackendWakeupLoader';
 import axios from 'utils/axios';
 import { KeyedObject } from 'types/root';
 import { AuthProps, JWTContextType } from 'types/auth';
@@ -131,7 +131,7 @@ export const JWTProvider = ({ children }: { children: React.ReactElement }) => {
   const updateProfile = () => {};
 
   if (state.isInitialized !== undefined && !state.isInitialized) {
-    return <Loader />;
+    return <BackendWakeupLoader />;
   }
 
   return <JWTContext value={{ ...state, login, logout, register, resetPassword, updateProfile }}>{children}</JWTContext>;
