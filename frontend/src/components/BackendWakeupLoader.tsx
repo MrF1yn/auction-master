@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import LinearProgress from '@mui/material/LinearProgress';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
-import { alpha, useTheme } from '@mui/material/styles';
 
 // ==============================|| Backend Wakeup Loader ||============================== //
 
@@ -22,14 +21,13 @@ const loadingMessages = [
 ];
 
 export default function BackendWakeupLoader() {
-  const theme = useTheme();
   const [messageIndex, setMessageIndex] = useState(0);
   const [fadeIn, setFadeIn] = useState(true);
 
   useEffect(() => {
     const interval = setInterval(() => {
       setFadeIn(false);
-      
+
       setTimeout(() => {
         setMessageIndex((prev) => (prev + 1) % loadingMessages.length);
         setFadeIn(true);
@@ -52,7 +50,7 @@ export default function BackendWakeupLoader() {
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        bgcolor: theme.palette.background.default
+        bgcolor: 'background.default'
       }}
     >
       {/* Top progress bar */}
@@ -78,7 +76,7 @@ export default function BackendWakeupLoader() {
                 width: 12,
                 height: 12,
                 borderRadius: '50%',
-                bgcolor: theme.palette.primary.main,
+                bgcolor: 'primary.main',
                 animation: 'bounce 1.4s infinite ease-in-out both',
                 animationDelay: `${i * 0.16}s`,
                 '@keyframes bounce': {
@@ -100,7 +98,7 @@ export default function BackendWakeupLoader() {
         <Typography
           variant="h6"
           sx={{
-            color: theme.palette.text.secondary,
+            color: 'text.secondary',
             fontWeight: 400,
             opacity: fadeIn ? 1 : 0,
             transform: fadeIn ? 'translateY(0)' : 'translateY(-10px)',
@@ -116,7 +114,7 @@ export default function BackendWakeupLoader() {
         <Typography
           variant="caption"
           sx={{
-            color: alpha(theme.palette.text.secondary, 0.6),
+            color: 'text.disabled',
             mt: 2,
             animation: 'pulse 2s infinite',
             '@keyframes pulse': {
