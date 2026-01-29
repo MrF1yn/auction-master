@@ -1,0 +1,44 @@
+# Production docker-compose - backend only with external DB and Redis
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: livebid-backend
+    environment:
+      # Database - use external PostgreSQL
+      DATABASE_URL: ${DATABASE_URL}
+
+      # Redis - use external Redis
+      REDIS_URL: ${REDIS_URL}
+
+      # JWT configuration
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      JWT_EXPIRATION_TIME_IN_HOURS: ${JWT_EXPIRATION_TIME_IN_HOURS:-24}
+
+      # Server configuration
+      PORT: ${PORT:-3010}
+      NODE_ENV: production
+      CORS_ORIGIN: ${CORS_ORIGIN}
+
+      # Rate limiting
+      RATE_LIMIT_WINDOW_IN_MINUTES: ${RATE_LIMIT_WINDOW_IN_MINUTES:-15}
+      RATE_LIMIT_MAX_REQUESTS: ${RATE_LIMIT_MAX_REQUESTS:-100}
+    ports:
+      - '${PORT:-3010}:${PORT:-3010}'
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '--spider', 'http://localhost:${PORT:-3010}/api/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M

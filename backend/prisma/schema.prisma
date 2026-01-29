@@ -1,0 +1,116 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==============================|| USER MODEL ||============================== //
+// Stores all registered users with authentication credentials and profile information
+
+model User {
+  id                            String   @id @default(uuid())
+  emailAddress                  String   @unique @map("email_address")
+  username                      String   @unique
+  fullName                      String   @map("full_name")
+  hashedPassword                String   @map("hashed_password")
+  avatarUrl                     String?  @map("avatar_url")
+  createdAtTimestamp            DateTime @default(now()) @map("created_at")
+  lastLoginAtTimestamp          DateTime? @map("last_login_at")
+  isAccountActive               Boolean  @default(true) @map("is_active")
+  isEmailVerified               Boolean  @default(false) @map("email_verified")
+
+  // Relations
+  auctionItemsCreatedByUser     AuctionItem[] @relation("CreatorRelation")
+  auctionItemsWonByUser         AuctionItem[] @relation("WinnerRelation")
+  bidsPlacedByUser              Bid[]
+
+  @@map("users")
+}
+
+// ==============================|| AUCTION STATUS ENUM ||============================== //
+// Defines the possible states of an auction item
+
+enum AuctionItemStatus {
+  ACTIVE
+  ENDED
+  CANCELLED
+}
+
+// ==============================|| AUCTION ITEM MODEL ||============================== //
+// Stores all auction items with pricing, timing, and status information
+
+model AuctionItem {
+  id                            String            @id @default(uuid())
+  itemTitle                     String            @map("title")
+  itemDescription               String            @map("description")
+  startingPriceInDollars        Decimal           @map("starting_price") @db.Decimal(12, 2)
+  currentHighestBidInDollars    Decimal           @map("current_bid") @db.Decimal(12, 2)
+  minimumBidIncrementInDollars  Decimal           @map("minimum_bid_increment") @db.Decimal(12, 2)
+  auctionStartTimeTimestamp     DateTime          @map("auction_start_time")
+  auctionEndTimeTimestamp       DateTime          @map("auction_end_time")
+  itemImageUrl                  String?           @map("image_url")
+  currentStatus                 AuctionItemStatus @default(ACTIVE) @map("status")
+  createdAtTimestamp            DateTime          @default(now()) @map("created_at")
+  updatedAtTimestamp            DateTime          @updatedAt @map("updated_at")
+
+  // Relations
+  creatorUserId                 String            @map("creator_user_id")
+  creatorUser                   User              @relation("CreatorRelation", fields: [creatorUserId], references: [id])
+  
+  winnerUserId                  String?           @map("winner_user_id")
+  winnerUser                    User?             @relation("WinnerRelation", fields: [winnerUserId], references: [id])
+  
+  allBidsOnItem                 Bid[]
+
+  // Indexes for faster queries
+  @@index([currentStatus])
+  @@index([auctionEndTimeTimestamp])
+  @@index([creatorUserId])
+  @@index([winnerUserId])
+  @@map("auction_items")
+}
+
+// ==============================|| BID MODEL ||============================== //
+// Stores all bids placed on auction items with success status and processing time
+
+model Bid {
+  id                            String      @id @default(uuid())
+  bidAmountInDollars            Decimal     @map("bid_amount") @db.Decimal(12, 2)
+  placedAtTimestamp             DateTime    @default(now()) @map("placed_at")
+  wasBidSuccessful              Boolean     @default(true) @map("was_successful")
+  bidProcessingTimeInMs         Int?        @map("processing_time_ms")
+
+  // Relations
+  auctionItemId                 String      @map("auction_item_id")
+  auctionItem                   AuctionItem @relation(fields: [auctionItemId], references: [id])
+  
+  bidderUserId                  String      @map("bidder_user_id")
+  bidderUser                    User        @relation(fields: [bidderUserId], references: [id])
+
+  // Indexes for faster queries
+  @@index([auctionItemId])
+  @@index([bidderUserId])
+  @@index([placedAtTimestamp])
+  @@map("bids")
+}
+
+// ==============================|| BLACKLISTED TOKEN MODEL ||============================== //
+// Stores JWT tokens that have been invalidated (logged out)
+
+model BlacklistedToken {
+  id                            String   @id @default(uuid())
+  tokenString                   String   @unique @map("token_string")
+  blacklistedAtTimestamp        DateTime @default(now()) @map("blacklisted_at")
+  expiresAtTimestamp            DateTime @map("expires_at")
+
+  // Indexes for faster queries
+  @@index([tokenString])
+  @@index([expiresAtTimestamp])
+  @@map("blacklisted_tokens")
+}
